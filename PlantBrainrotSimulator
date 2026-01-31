@@ -6,8 +6,54 @@ local Window = Rayfield:CreateWindow({
    ConfigurationSaving = { Enabled = true, FolderName = "PlantBrainrotSimulator" }
 })
 
+-- TABS
+local HomeTab = Window:CreateTab("Home", 4483362458)
 local SeedTab = Window:CreateTab("Seed Shop", 4483362458)
 local ToolTab = Window:CreateTab("Items Shop", 4483362458)
+
+-------------------------------------------------------------------------------
+-- HOME TAB (Automation & Rewards)
+-------------------------------------------------------------------------------
+HomeTab:CreateSection("Welcome to VaenHub")
+
+local EventEggEnabled = false
+HomeTab:CreateToggle({
+   Name = "Open Event Egg",
+   CurrentValue = false,
+   Callback = function(Value)
+      EventEggEnabled = Value
+      task.spawn(function()
+          while EventEggEnabled do
+              game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("ServerRemoteEvent"):FireServer("OpenEventEgg", 2)
+              task.wait(60) -- 1 Minute Loop
+          end
+      end)
+   end,
+})
+
+local RewardsEnabled = false
+HomeTab:CreateToggle({
+   Name = "Auto-Claim Rewards (1-12)",
+   CurrentValue = false,
+   Callback = function(Value)
+      RewardsEnabled = Value
+      task.spawn(function()
+          while RewardsEnabled do
+              for i = 1, 12 do
+                  if not RewardsEnabled then break end
+                  game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("ServerRemoteEvent"):FireServer("GetOnlineGift", i)
+                  task.wait(10) -- 10 Seconds between each gift
+              end
+          end
+      end)
+   end,
+})
+
+HomeTab:CreateSection("Menu Controls")
+HomeTab:CreateButton({
+   Name = "Destroy UI",
+   Callback = function() Rayfield:Destroy() end,
+})
 
 -------------------------------------------------------------------------------
 -- SEED SHOP LOGIC
@@ -58,7 +104,7 @@ SeedTab:CreateToggle({
 })
 
 -------------------------------------------------------------------------------
--- TOOL SHOP LOGIC (Buckets + Grenade)
+-- TOOL SHOP LOGIC
 -------------------------------------------------------------------------------
 local SelectedBuckets = {} 
 local BucketsEnabled = false
