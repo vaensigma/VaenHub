@@ -1,0 +1,103 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "VaenHub | Plant Brainrot Simulator",
+   LoadingTitle = "VaenHub Loading...",
+   ConfigurationSaving = { Enabled = true, FolderName = "PlantBrainrotSimulator" }
+})
+
+local SeedTab = Window:CreateTab("Seed Shop", 4483362458)
+local ToolTab = Window:CreateTab("Items Shop", 4483362458)
+
+-------------------------------------------------------------------------------
+-- SEED SHOP LOGIC
+-------------------------------------------------------------------------------
+local SelectedSeeds = {} 
+local SeedsEnabled = false
+
+local SeedList = {
+    {Name = "Tomato", ID = 1}, {Name = "Pumpkin", ID = 2}, {Name = "Melon", ID = 3},
+    {Name = "Mini Corn", ID = 4}, {Name = "Baron Pumpkin", ID = 5}, {Name = "Mushroom", ID = 6},
+    {Name = "Watermelon", ID = 7}, {Name = "Cactus", ID = 8}, {Name = "Broccoli", ID = 9},
+    {Name = "Sunflower", ID = 10}, {Name = "Chrysanthemum", ID = 11},
+    {Name = "Peashooter", ID = 12}, {Name = "Corn", ID = 13}, {Name = "Cactus Flower", ID = 14},
+    {Name = "Fire Peashooter", ID = 15}, {Name = "Threepeater", ID = 16},
+    {Name = "Man-Eating Flower", ID = 17}, {Name = "Alien Onion", ID = 18},
+    {Name = "Capsid Brute", ID = 19}, {Name = "Shroombloom Sun", ID = 20}
+}
+
+local SeedNamesOnly = {}
+for _, item in ipairs(SeedList) do table.insert(SeedNamesOnly, item.Name) end
+
+SeedTab:CreateDropdown({
+   Name = "Select Seeds",
+   Options = SeedNamesOnly,
+   CurrentOption = {},
+   MultipleOptions = true,
+   Callback = function(Options) SelectedSeeds = Options end,
+})
+
+SeedTab:CreateToggle({
+   Name = "Auto-Buy Selected Seeds",
+   CurrentValue = false,
+   Callback = function(Value)
+      SeedsEnabled = Value
+      task.spawn(function()
+          while SeedsEnabled do
+              for _, master in ipairs(SeedList) do
+                  if not SeedsEnabled then break end
+                  if table.find(SelectedSeeds, master.Name) then
+                      game:GetService("ReplicatedStorage").RemoteEvent.ServerRemoteEvent:FireServer("Buy_ArrayBool_Item", "\231\167\141\229\173\144", master.ID)
+                      task.wait(0.5)
+                  end
+              end
+              task.wait(0.1)
+          end
+      end)
+   end,
+})
+
+-------------------------------------------------------------------------------
+-- TOOL SHOP LOGIC (Buckets + Grenade)
+-------------------------------------------------------------------------------
+local SelectedBuckets = {} 
+local BucketsEnabled = false
+
+local BucketList = {
+    {Name = "Water Bucket", ID = 1},
+    {Name = "Grenade", ID = 2},
+    {Name = "Yellow Water Bucket", ID = 9},
+    {Name = "Orange Water Bucket", ID = 10},
+    {Name = "Purple Water Bucket", ID = 11}
+}
+
+local BucketNamesOnly = {}
+for _, item in ipairs(BucketList) do table.insert(BucketNamesOnly, item.Name) end
+
+ToolTab:CreateDropdown({
+   Name = "Select Items",
+   Options = BucketNamesOnly,
+   CurrentOption = {},
+   MultipleOptions = true,
+   Callback = function(Options) SelectedBuckets = Options end,
+})
+
+ToolTab:CreateToggle({
+   Name = "Auto-Buy Selected Items",
+   CurrentValue = false,
+   Callback = function(Value)
+      BucketsEnabled = Value
+      task.spawn(function()
+          while BucketsEnabled do
+              for _, master in ipairs(BucketList) do
+                  if not BucketsEnabled then break end
+                  if table.find(SelectedBuckets, master.Name) then
+                      game:GetService("ReplicatedStorage").RemoteEvent.ServerRemoteEvent:FireServer("Buy_ArrayBool_Item", "\233\129\147\229\133\183", master.ID)
+                      task.wait(0.5)
+                  end
+              end
+              task.wait(0.1)
+          end
+      end)
+   end,
+})
