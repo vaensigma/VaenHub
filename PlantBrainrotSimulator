@@ -6,62 +6,12 @@ local Window = Rayfield:CreateWindow({
    ConfigurationSaving = { Enabled = true, FolderName = "PlantBrainrotSimulator" }
 })
 
--- TABS
-local HomeTab = Window:CreateTab("Home", 4483362458)
-local SeedTab = Window:CreateTab("Seed Shop", 4483362458)
-local ToolTab = Window:CreateTab("Items Shop", 4483362458)
-
 -------------------------------------------------------------------------------
--- HOME TAB (Automation & Rewards)
+-- [ CONFIGURATION TABLES ]
+-- Add or remove items here easily. The script handles the rest!
 -------------------------------------------------------------------------------
-HomeTab:CreateSection("Welcome to VaenHub")
 
-local EventEggEnabled = false
-HomeTab:CreateToggle({
-   Name = "Open Event Egg",
-   CurrentValue = false,
-   Callback = function(Value)
-      EventEggEnabled = Value
-      task.spawn(function()
-          while EventEggEnabled do
-              game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("ServerRemoteEvent"):FireServer("OpenEventEgg", 2)
-              task.wait(60) -- 1 Minute Loop
-          end
-      end)
-   end,
-})
-
-local RewardsEnabled = false
-HomeTab:CreateToggle({
-   Name = "Auto-Claim Rewards (1-12)",
-   CurrentValue = false,
-   Callback = function(Value)
-      RewardsEnabled = Value
-      task.spawn(function()
-          while RewardsEnabled do
-              for i = 1, 12 do
-                  if not RewardsEnabled then break end
-                  game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("ServerRemoteEvent"):FireServer("GetOnlineGift", i)
-                  task.wait(10) -- 10 Seconds between each gift
-              end
-          end
-      end)
-   end,
-})
-
-HomeTab:CreateSection("Menu Controls")
-HomeTab:CreateButton({
-   Name = "Destroy UI",
-   Callback = function() Rayfield:Destroy() end,
-})
-
--------------------------------------------------------------------------------
--- SEED SHOP LOGIC
--------------------------------------------------------------------------------
-local SelectedSeeds = {} 
-local SeedsEnabled = false
-
-local SeedList = {
+local SEED_LIST = {
     {Name = "Tomato", ID = 1}, {Name = "Pumpkin", ID = 2}, {Name = "Melon", ID = 3},
     {Name = "Mini Corn", ID = 4}, {Name = "Baron Pumpkin", ID = 5}, {Name = "Mushroom", ID = 6},
     {Name = "Watermelon", ID = 7}, {Name = "Cactus", ID = 8}, {Name = "Broccoli", ID = 9},
@@ -72,44 +22,7 @@ local SeedList = {
     {Name = "Capsid Brute", ID = 19}, {Name = "Shroombloom Sun", ID = 20}
 }
 
-local SeedNamesOnly = {}
-for _, item in ipairs(SeedList) do table.insert(SeedNamesOnly, item.Name) end
-
-SeedTab:CreateDropdown({
-   Name = "Select Seeds",
-   Options = SeedNamesOnly,
-   CurrentOption = {},
-   MultipleOptions = true,
-   Callback = function(Options) SelectedSeeds = Options end,
-})
-
-SeedTab:CreateToggle({
-   Name = "Auto-Buy Selected Seeds",
-   CurrentValue = false,
-   Callback = function(Value)
-      SeedsEnabled = Value
-      task.spawn(function()
-          while SeedsEnabled do
-              for _, master in ipairs(SeedList) do
-                  if not SeedsEnabled then break end
-                  if table.find(SelectedSeeds, master.Name) then
-                      game:GetService("ReplicatedStorage").RemoteEvent.ServerRemoteEvent:FireServer("Buy_ArrayBool_Item", "\231\167\141\229\173\144", master.ID)
-                      task.wait(0.5)
-                  end
-              end
-              task.wait(0.1)
-          end
-      end)
-   end,
-})
-
--------------------------------------------------------------------------------
--- TOOL SHOP LOGIC
--------------------------------------------------------------------------------
-local SelectedBuckets = {} 
-local BucketsEnabled = false
-
-local BucketList = {
+local ITEM_LIST = {
     {Name = "Water Bucket", ID = 1},
     {Name = "Grenade", ID = 2},
     {Name = "Yellow Water Bucket", ID = 9},
@@ -117,28 +30,104 @@ local BucketList = {
     {Name = "Purple Water Bucket", ID = 11}
 }
 
-local BucketNamesOnly = {}
-for _, item in ipairs(BucketList) do table.insert(BucketNamesOnly, item.Name) end
+-------------------------------------------------------------------------------
+-- [ SETTINGS & VARIABLES ]
+-------------------------------------------------------------------------------
 
-ToolTab:CreateDropdown({
-   Name = "Select Items",
-   Options = BucketNamesOnly,
-   CurrentOption = {},
-   MultipleOptions = true,
-   Callback = function(Options) SelectedBuckets = Options end,
+local Remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("ServerRemoteEvent")
+
+local SelectedSeeds = {}
+local SelectedItems = {}
+
+local States = {
+    Boss = false,
+    Egg = false,
+    Rewards = false,
+    Seeds = false,
+    Items = false
+}
+
+-------------------------------------------------------------------------------
+-- [ HOME TAB ]
+-------------------------------------------------------------------------------
+local HomeTab = Window:CreateTab("Home", 4483362458)
+
+HomeTab:CreateSection("Boss Automation")
+
+HomeTab:CreateToggle({
+   Name = "Auto Join Boss Battle",
+   CurrentValue = false,
+   Callback = function(v) 
+      States.Boss = v 
+      task.spawn(function()
+          while States.Boss do
+              Remote:FireServer("Business", "\228\184\150\231\149\140Boss", 1, 1)
+              task.wait(10)
+          end
+      end)
+   end,
 })
 
-ToolTab:CreateToggle({
-   Name = "Auto-Buy Selected Items",
+HomeTab:CreateSection("Rewards & Eggs")
+
+HomeTab:CreateToggle({
+   Name = "Open Event Egg",
    CurrentValue = false,
-   Callback = function(Value)
-      BucketsEnabled = Value
+   Callback = function(v)
+      States.Egg = v
       task.spawn(function()
-          while BucketsEnabled do
-              for _, master in ipairs(BucketList) do
-                  if not BucketsEnabled then break end
-                  if table.find(SelectedBuckets, master.Name) then
-                      game:GetService("ReplicatedStorage").RemoteEvent.ServerRemoteEvent:FireServer("Buy_ArrayBool_Item", "\233\129\147\229\133\183", master.ID)
+          while States.Egg do
+              Remote:FireServer("OpenEventEgg", 2)
+              task.wait(60)
+          end
+      end)
+   end,
+})
+
+HomeTab:CreateToggle({
+   Name = "Auto-Claim Rewards (1-12)",
+   CurrentValue = false,
+   Callback = function(v)
+      States.Rewards = v
+      task.spawn(function()
+          while States.Rewards do
+              for i = 1, 12 do
+                  if not States.Rewards then break end
+                  Remote:FireServer("GetOnlineGift", i)
+                  task.wait(10)
+              end
+          end
+      end)
+   end,
+})
+
+-------------------------------------------------------------------------------
+-- [ SEED SHOP TAB ]
+-------------------------------------------------------------------------------
+local SeedTab = Window:CreateTab("Seed Shop", 4483362458)
+
+local SeedNames = {}
+for _, item in ipairs(SEED_LIST) do table.insert(SeedNames, item.Name) end
+
+SeedTab:CreateDropdown({
+   Name = "Select Seeds to Buy",
+   Options = SeedNames,
+   CurrentOption = {},
+   MultipleOptions = true,
+   Callback = function(v) SelectedSeeds = v end,
+})
+
+SeedTab:CreateToggle({
+   Name = "Enable Auto-Buy Seeds",
+   CurrentValue = false,
+   Callback = function(v)
+      States.Seeds = v
+      task.spawn(function()
+          while States.Seeds do
+              for _, master in ipairs(SEED_LIST) do
+                  if not States.Seeds then break end
+                  if table.find(SelectedSeeds, master.Name) then
+                      Remote:FireServer("Buy_ArrayBool_Item", "\231\167\141\229\173\144", master.ID)
                       task.wait(0.5)
                   end
               end
@@ -147,3 +136,51 @@ ToolTab:CreateToggle({
       end)
    end,
 })
+
+-------------------------------------------------------------------------------
+-- [ ITEMS SHOP TAB ]
+-------------------------------------------------------------------------------
+local ToolTab = Window:CreateTab("Items Shop", 4483362458)
+
+local ItemNames = {}
+for _, item in ipairs(ITEM_LIST) do table.insert(ItemNames, item.Name) end
+
+ToolTab:CreateDropdown({
+   Name = "Select Items to Buy",
+   Options = ItemNames,
+   CurrentOption = {},
+   MultipleOptions = true,
+   Callback = function(v) SelectedItems = v end,
+})
+
+ToolTab:CreateToggle({
+   Name = "Enable Auto-Buy Items",
+   CurrentValue = false,
+   Callback = function(v)
+      States.Items = v
+      task.spawn(function()
+          while States.Items do
+              for _, master in ipairs(ITEM_LIST) do
+                  if not States.Items then break end
+                  if table.find(SelectedItems, master.Name) then
+                      Remote:FireServer("Buy_ArrayBool_Item", "\233\129\147\229\133\183", master.ID)
+                      task.wait(0.5)
+                  end
+              end
+              task.wait(0.1)
+          end
+      end)
+   end,
+})
+
+-------------------------------------------------------------------------------
+-- [ SETTINGS ]
+-------------------------------------------------------------------------------
+local SettingsTab = Window:CreateTab("Settings", 4483362458)
+
+SettingsTab:CreateButton({
+   Name = "Destroy UI",
+   Callback = function() Rayfield:Destroy() end,
+})
+
+Rayfield:Notify({Title = "VaenHub Loaded", Content = "Welcome back!", Duration = 3})
