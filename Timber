@@ -1,0 +1,89 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "SigmaSkrypt",
+    LoadingTitle = "SigmaSkrypt",
+    LoadingSubtitle = "SigmaSkrypt",
+    Theme = "Default",x
+})
+
+local Tab = Window:CreateTab("Main", 4483362458)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local ByteNetReliable = ReplicatedStorage:WaitForChild("ByteNetReliable")
+
+_G.lastSeed = nil
+
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    if self == ByteNetReliable and method == "FireServer" then
+        local buf = select(1, ...)
+        if typeof(buf) == "buffer" and buffer.len(buf) == 6 then
+            if buffer.readu8(buf, 0) == 31 then
+                _G.lastSeed = buffer.readu32(buf, 2)
+            end
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+
+local function sendAxeHit(seed)
+    local buf = buffer.create(6)
+    buffer.writeu8(buf, 0, 31)
+    buffer.writeu8(buf, 1, 100)
+    buffer.writeu32(buf, 2, seed)
+    ByteNetReliable:FireServer(buf)
+end
+
+local chopEnabled = false
+local chopThread = nil
+
+local function stopChop()
+    chopEnabled = false
+    if chopThread then
+        task.cancel(chopThread)
+        chopThread = nil
+    end
+end
+
+local function startChop()
+    chopEnabled = true
+    chopThread = task.spawn(function()
+        while chopEnabled do
+            if _G.lastSeed then
+                sendAxeHit(_G.lastSeed)
+            end
+            task.wait()
+        end
+    end)
+end
+
+Tab:CreateToggle({
+    Name = "Auto Chop Trees",
+    CurrentValue = false,
+    Flag = "AutoChop",
+    Callback = function(Value)
+        if Value then
+            startChop()
+        else
+            stopChop()
+        end
+    end,
+})
+
+Tab:CreateButton({
+    Name = "Debug: Pokaż seed",
+    Callback = function()
+        Rayfield:Notify({
+            Title = _G.lastSeed and "Seed OK" or "Brak seeda",
+            Content = _G.lastSeed and tostring(_G.lastSeed) or "Uderz raz ręcznie w drzewo!",
+            Duration = 3,
+        })
+    end,
+})
+
+Rayfield:LoadConfiguration()
